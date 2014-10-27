@@ -15,19 +15,21 @@ private:
 		Jaguar *m_rightFront;
 		Jaguar *m_leftBack;
 		Jaguar *m_rightBack;
+		RobotDrive *m_robotDrive;
 
 	//Pneumatics
 		//Shifter
-		Solenoid shiftUp;
-		Solenoid shiftDown;
+		Solenoid *m_shifterUp;
+		Solenoid *m_shifterDown;
 
-	RobotDrive *m_robotDrive;
 	//Teleop Variables
 		//timers
 		Timer *lastShift; 	//timer to make sure shifters don't go off repeatedly
 
 	//int and floats
 		int shiftValue; 	//value of what gear robot is in
+		float leftStickValue;
+		float rightStickValue;
 
 
 	void RobotInit()
@@ -40,12 +42,14 @@ private:
 			lw = LiveWindow::GetInstance();
 
 		//Drivetrain motors
-			m_leftFront = new Jaguar(3);
-			m_rightFront = new Jaguar(2);
-			m_leftBack = new Jaguar(4);
-			m_rightBack = new Jaguar(1);
-			m_robotDrive = new RobotDrive(m_leftFront,m_rightFront,m_leftBack,m_rightBack);
-
+			m_leftFront = new Jaguar(2);
+			m_rightFront = new Jaguar(1);
+			m_leftBack = new Jaguar(3);
+			m_rightBack = new Jaguar(0);
+			m_robotDrive = new RobotDrive(m_leftFront,m_leftBack,m_rightFront,m_rightBack);
+		//Shifter pneumatics
+			m_shifterUp = new Solenoid(2);
+			m_shifterDown = new Solenoid(3);
 		//teleop
 			//timers
 			lastShift = new Timer();
@@ -69,7 +73,8 @@ private:
 
 	void TeleopPeriodic()
 	{
-
+		TeleopDrive();
+		Shift();
 	}
 
 	void TestPeriodic()
@@ -80,13 +85,28 @@ private:
 	//Teleop functions
 	void TeleopDrive()
 	{
-		m_robotDrive->TankDrive(m_leftStick,m_rightStick);
+
+		leftStickValue = m_leftStick->GetY();
+		rightStickValue = m_rightStick->GetY();
+		m_robotDrive->TankDrive(leftStickValue, rightStickValue);
 	}
 	void Shift()
 	{
 		if(m_leftStick->GetTrigger() == 1 && m_rightStick->GetTrigger() == 1 && shiftValue == 0 && lastShift->Get() > 0.3  )
 		{
-
+			m_shifterUp->Set(true);
+			m_shifterDown->Set(false);
+			shiftValue = 1;
+			lastShift->Reset();
+			printf("Shifter up set to true");
+		}
+		else if(m_leftStick->GetTrigger() == 1 && m_rightStick->GetTrigger() == 1 && shiftValue == 0 && lastShift->Get() > 0.3)
+		{
+			m_shifterUp->Set(false);
+			m_shifterDown->Set(true);
+			shiftValue = 0;
+			lastShift->Reset();
+			printf("Shifter down set true");
 		}
 	}
 };
