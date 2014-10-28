@@ -18,9 +18,14 @@ private:
 		RobotDrive *m_robotDrive;
 
 	//Pneumatics
+		//compressor
+		Compressor *m_compressor;
 		//Shifter
 		Solenoid *m_shifterUp;
 		Solenoid *m_shifterDown;
+		//Pusher
+		Solenoid *m_pusher;
+		Solenoid *m_pusher2;
 
 	//Teleop Variables
 		//timers
@@ -47,12 +52,19 @@ private:
 			m_leftBack = new Jaguar(3);
 			m_rightBack = new Jaguar(0);
 			m_robotDrive = new RobotDrive(m_leftFront,m_leftBack,m_rightFront,m_rightBack);
-		//Shifter pneumatics
+		//Pneumatics
+			//compressor
+			m_compressor = new Compressor(0);
+			//shifter
 			m_shifterUp = new Solenoid(2);
 			m_shifterDown = new Solenoid(3);
+			//Pusher
+			m_pusher = new Solenoid(0);
+			m_pusher2 = new Solenoid(1);
 		//teleop
 			//timers
 			lastShift = new Timer();
+		m_compressor->SetClosedLoopControl(true);
 	}
 
 	void AutonomousInit()
@@ -75,6 +87,7 @@ private:
 	{
 		TeleopDrive();
 		Shift();
+		Pusher();
 	}
 
 	void TestPeriodic()
@@ -98,15 +111,29 @@ private:
 			m_shifterDown->Set(false);
 			shiftValue = 1;
 			lastShift->Reset();
-			printf("Shifter up set to true");
+			printf("Shifter up set to true \n");
+
 		}
-		else if(m_leftStick->GetTrigger() == 1 && m_rightStick->GetTrigger() == 1 && shiftValue == 0 && lastShift->Get() > 0.3)
+		else if(m_leftStick->GetTrigger() == 1 && m_rightStick->GetTrigger() == 1 && shiftValue == 1 && lastShift->Get() > 0.3)
 		{
 			m_shifterUp->Set(false);
 			m_shifterDown->Set(true);
 			shiftValue = 0;
 			lastShift->Reset();
 			printf("Shifter down set true");
+		}
+	}
+	void Pusher()
+	{
+		if(m_gamepad->GetRawButton(1))
+		{
+			m_pusher->Set(true);
+			m_pusher2->Set(false);
+		}
+		else if(m_gamepad->GetRawButton(2))
+		{
+			m_pusher->Set(false);
+			m_pusher2->Set(true);
 		}
 	}
 };
