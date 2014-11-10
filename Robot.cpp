@@ -33,12 +33,17 @@ private:
 		Solenoid *m_TheBarUp;
 		Solenoid *m_TheBarDown;
 
+		BuiltInAccelerometer *accl;
+		SmartDashboard *smart;
 	//Teleop Variables
 		//timers
 		Timer *lastShift; 	//timer to make sure shifters don't go off repeatedly
+		Timer *autonTimer;
 
 	//int and floats
 		int shiftValue; 	//value of what gear robot is in
+		int AutonSwitch;
+		int autoCounter;
 		float leftStickValue;
 		float rightStickValue;
 
@@ -73,21 +78,27 @@ private:
 			m_pusher2 = new Solenoid(1);
 			//TheBar
 			m_TheBarUp = new Solenoid(4);
-			m_TheBarDown = new Solenoid()
+			m_TheBarDown = new Solenoid(5);
 		//teleop
 			//timers
 			lastShift = new Timer();
+			autonTimer = new Timer();
+			smart = new SmartDashboard();
+			accl = new BuiltInAccelerometer();
 		m_compressor->SetClosedLoopControl(true);
 	}
 
 	void AutonomousInit()
 	{
+		AutonSwitch = 0;
+		autoCounter = 0;
+		autonTimer->Start();
 
 	}
 
 	void AutonomousPeriodic()
 	{
-
+		AutonQuickShootAndDrive();
 	}
 
 	void TeleopInit()
@@ -102,11 +113,15 @@ private:
 		Shift();
 		Pusher();
 		Shooter();
+		TheBar();
+		SmartDashboard();
 	}
 
 	void TestPeriodic()
 	{
 		lw->Run();
+		Pusher();
+
 	}
 
 	//Teleop functions
@@ -158,7 +173,7 @@ private:
 		}
 		else if(m_gamepad->GetRawButton(8))
 		{
-			m_shooter->Set(1.0);
+			m_shooter->Set(0.0);
 		}
 	}
 	void TheBar()
@@ -174,6 +189,95 @@ private:
 			m_TheBarDown->Set(true);
 		}
 	}
+	//Auto functions
+	void AutonQuickShootAndDrive()
+	{
+		switch(AutonSwitch)
+		{
+		case 0:
+			printf("ON step zero \n");
+			m_shooter->Set(1.0);
+			if(autonTimer->Get() >= 0.75)
+			{
+				autonTimer->Reset();
+				AutonSwitch = 1;
+			}
+			break;
+		case 1:
+			printf("ON step one \n");
+			m_shooter->Set(0.75);
+			if(autonTimer->Get() >= 1.0)
+			{
+				autonTimer->Reset();
+				AutonSwitch = 2;
+			}
+			break;
+		case 2:
+			printf("ON step two \n");
+			if(autoCounter <= 2)
+			{
+				m_pusher->Set(false);
+				m_pusher2->Set(true);
+				autonTimer->Reset();
+				autoCounter++;
+				AutonSwitch = 3;
+			}
+
+			{
+				AutonSwitch = 6;
+			}
+			break;
+		case 3:
+			printf("ON step three \n");
+			if(autonTimer->Get() >= 0.2)
+			{
+				m_pusher->Set(true);
+				m_pusher2->Set(false);
+				m_shooter->Set(1.0);
+				autonTimer->Reset();
+				AutonSwitch = 4;
+			}
+			break;
+		case 4:
+			printf("ON step four \n");
+			if(autonTimer->Get() >= 0.28)
+			{
+				m_shooter->Set(0.70);
+				autonTimer->Reset();
+				AutonSwitch = 5;
+			}
+			break;
+		case 5:
+			printf("ON step five \n");
+			if(autonTimer->Get() >= 0.28)
+			{
+				AutonSwitch = 2;
+			}
+			break;
+		case 6:
+			printf("ON step six \n");
+			m_shooter->Set(0.0);
+			m_robotDrive->Drive(-0.8,0.0);
+			autonTimer->Reset();
+			AutonSwitch = 7;
+			break;
+		case 7:
+			printf("ON step seven \n");
+			if(autonTimer->Get() >= 1.5)
+			{
+				m_robotDrive->Drive(0.0,0.0);
+			}
+			break;
+		}
+	}
+void SmartDashboard()
+{
+	smart->PutNumber("Accel X-Axis", accl->GetX());
+	smart->PutNumber("Accel Y-Axis", accl->GetY());
+	smart->PutNumber("Accel Z-Axis", accl->GetZ());
+}
+
+
 };
 
 START_ROBOT_CLASS(Robot);
